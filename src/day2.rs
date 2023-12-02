@@ -132,7 +132,7 @@ impl From<&str> for BallData {
     }
 }
 
-pub(crate) fn is_game_valid_for_given_set(game_data: &GameData, given_set: &HashMap<Colour, u32>) -> Option<u32> {
+fn is_game_valid_for_given_set(game_data: &GameData, given_set: &HashMap<Colour, u32>) -> Option<u32> {
     let is_possible = game_data.is_possible(given_set)?;
 
     if is_possible { Some(game_data.id) } else { None }
@@ -140,5 +140,5 @@ pub(crate) fn is_game_valid_for_given_set(game_data: &GameData, given_set: &Hash
 
 fn get_power_of_minimum_required(game_data: &GameData) -> u32 {
     let minimum_required = game_data.get_max_colours_seen();
-    minimum_required.iter().fold(1, |acc, (colour, count)| acc * count)
+    minimum_required.iter().fold(1, |acc, (_, count)| acc * count)
 }
