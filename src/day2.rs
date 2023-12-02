@@ -1,4 +1,3 @@
-use std::cmp::max;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -13,13 +12,20 @@ pub(crate) fn day2(path: String) {
     ]);
 
     let mut total_of_ids = 0;
+    let mut power_of_minimums = 0;
     for lines in buffer.lines() {
         let l = lines.unwrap();
-        let x = is_game_valid_for_given_set(l, &given_set);
+        let game_data = GameData::new_from_line(l).unwrap();
+        let x = is_game_valid_for_given_set(&game_data, &given_set);
         total_of_ids += x.unwrap_or(0);
+
+        let y = get_power_of_minimum_required(&game_data);
+        power_of_minimums += y;
     }
 
     println!("Total of possible game Ids: {}", total_of_ids);
+    println!("Power of minimums: {}", power_of_minimums);
+
 }
 
 #[derive(Eq, PartialEq, Hash, Clone)]
@@ -42,23 +48,36 @@ impl From<&str> for Colour {
 }
 
 struct GameData {
+    pub id: u32,
     pub revealed: Vec<Vec<BallData>>
 }
 
 impl GameData {
-    pub fn new(revealed: Vec<Vec<BallData>>) -> Self {
-        Self {
-            revealed
-        }
-    }
-
-    pub fn new_from_raw_data(revealed:Vec<&str>) -> Self {
+    pub fn new_from_raw_data(id: u32, revealed:Vec<&str>) -> Self {
         let raw_ball_data: Vec<Vec<&str>> = revealed.iter().map(|rev| rev.split(", ").collect::<Vec<&str>>()).collect();
         let ball_data: Vec<Vec<BallData>> = raw_ball_data.iter().map(|raw| raw.iter().map(|data| BallData::from(*data)).collect()).collect();
 
         Self {
+            id,
             revealed: ball_data
         }
+    }
+
+    pub fn new_from_line (line: String) -> Option<Self> {
+        let parts: Vec<&str> = line.split(&[':', ';'][..]).collect();
+
+        let id_str: &str = parts
+            .first()?
+            .split(" ")
+            .skip(1).
+            take(1)
+            .collect::<Vec<&str>>()
+            .first()?;
+
+        let id = id_str.parse::<u32>().ok()?;
+
+        let revealed_sets_parts = &parts[1..];
+        Some(GameData::new_from_raw_data(id, revealed_sets_parts.to_vec()))
     }
 
     fn get_max_colours_seen(&self) -> HashMap<Colour, u32> {
@@ -113,23 +132,13 @@ impl From<&str> for BallData {
     }
 }
 
-pub(crate) fn is_game_valid_for_given_set(line: String, given_set: &HashMap<Colour, u32>) -> Option<u32> {
-    let parts: Vec<&str> = line.split(&[':', ';'][..]).collect();
-
-    let id_str: &str = parts
-        .first()?
-        .split(" ")
-        .skip(1).
-        take(1)
-        .collect::<Vec<&str>>()
-        .first()?;
-
-    let id = id_str.parse::<u32>().ok()?;
-
-    let revealed_sets_parts = &parts[1..];
-    let game_data = GameData::new_from_raw_data(revealed_sets_parts.to_vec());
-
+pub(crate) fn is_game_valid_for_given_set(game_data: &GameData, given_set: &HashMap<Colour, u32>) -> Option<u32> {
     let is_possible = game_data.is_possible(given_set)?;
 
-    if is_possible { Some(id) } else { None }
+    if is_possible { Some(game_data.id) } else { None }
+}
+
+fn get_power_of_minimum_required(game_data: &GameData) -> u32 {
+    let minimum_required = game_data.get_max_colours_seen();
+    minimum_required.iter().fold(1, |acc, (colour, count)| acc * count)
 }
