@@ -11,6 +11,9 @@ pub(crate) fn day3(path: String) {
     let total = parse_engine_schematic(&char_list);
 
     println!("Total of found parts: {}", total);
+
+    let total_gear_ratio = parse_engine_schematic_for_gears(&char_list);
+    println!("Total of gear ratios: {}", total_gear_ratio);
 }
 
 fn parse_engine_schematic(lines: &Vec<Vec<char>>) -> u32 {
@@ -25,10 +28,35 @@ fn parse_engine_schematic(lines: &Vec<Vec<char>>) -> u32 {
         let mut found_numbers: Vec<u32> = vec![];
         for (i, _) in symbol_idxs {
             let mut found_for_symbol = get_surrounding_numbers(lines, i, r);
+
             found_numbers.append( &mut found_for_symbol);
         }
 
         total += found_numbers.iter().fold(0, |acc, n| acc + n);
+    }
+
+    total
+}
+
+fn parse_engine_schematic_for_gears(lines: &Vec<Vec<char>>) -> u32 {
+    let mut total = 0;
+    for (r, l) in lines.iter().enumerate() {
+        let symbol_idxs = l
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| *c != &'.' && !c.is_digit(10))
+            .collect::<Vec<(usize, &char)>>();
+
+        let mut found_numbers: Vec<u32> = vec![];
+        for (i, _) in symbol_idxs {
+            let mut found_for_symbol = get_surrounding_numbers(lines, i, r);
+
+            if found_for_symbol.len() == 2 {
+                total += found_for_symbol[0] * found_for_symbol[1];
+            }
+        }
+
+        // total += found_numbers.iter().fold(0, |acc, n| acc + n);
     }
 
     total
