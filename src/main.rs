@@ -1,6 +1,7 @@
 mod day1;
 mod day2;
 mod day3;
+mod day4;
 
 use clap::Parser;
 
@@ -22,6 +23,7 @@ fn main() {
         1 => day1::day1(args.input_path),
         2 => day2::day2(args.input_path),
         3 => day3::day3(args.input_path),
+        4 => day4::day4(args.input_path),
         _ => {}
     };
 }
