@@ -1,12 +1,13 @@
 use std::fs::File;
 use std::io::{BufReader, Read};
+use itertools::Itertools;
 use nom;
 use nom::bytes::complete::tag;
 use nom::character::complete::{alpha1, multispace1};
 use nom::character::complete::u64 as nom_u64;
 use nom::IResult;
-use nom::multi::{many_till, separated_list1};
-use nom::sequence::{pair, separated_pair, tuple};
+use nom::multi::separated_list1;
+use nom::sequence::tuple;
 
 #[derive(Debug, PartialEq)]
 enum Category {
@@ -77,9 +78,38 @@ pub fn day5(path: String) {
     _ = buffer.read_to_string(&mut i);
 
     let (_, (seed_list, category_maps)) = parse_full_conversion_map_file(&i).unwrap();
+
+    part1(&seed_list, &category_maps);
+    part2(seed_list, category_maps);
+}
+
+fn part2(seed_list: Vec<u64>, category_maps: Vec<CategoryMap>) {
+    let mut lowest = 0;
+    let range_pairs = seed_list.into_iter().tuples().collect::<Vec<(u64, u64)>>();
+    println!("total seed pairs: {}", range_pairs.len() / 2);
+    for (start, count) in range_pairs.into_iter() {
+        println!("Pair ({}, {}) starting...", &start, &count);
+        for seed in start..(start + count) {
+            let mut result = seed;
+            for map in category_maps.iter() {
+                result = map.convert(result);
+            }
+            if lowest == 0 || result < lowest {
+                println!("New lowest found: {}", result);
+                lowest = result;
+            }
+
+        }
+        println!("..finished");
+    }
+
+    println!("lowest location {}", lowest);
+}
+
+fn part1(seed_list: &Vec<u64>, category_maps: &Vec<CategoryMap>) {
     let mut locations = vec![];
-    for seed in seed_list {
-        let mut result = seed;
+    for seed in seed_list.iter() {
+        let mut result = seed.clone();
         for map in category_maps.iter() {
             result = map.convert(result);
         }
