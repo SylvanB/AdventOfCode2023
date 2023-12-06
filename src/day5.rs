@@ -51,6 +51,18 @@ impl CategoryMap {
             conversion_ranges
         }
     }
+
+    pub fn output_for_range(source: u64, range: (u64, u64, u64)) -> Option<u64> {
+        if source >= range.1 && source < (range.1+range.2) {
+        // if (range.1..(range.1+range.2)).contains(&source) {
+            return Some(range.0 + source - range.1)
+        }
+        None
+    }
+
+    pub fn convert(&self, source: u64) -> u64 {
+        todo!()
+    }
 }
 
 pub fn day5(path: String) {
@@ -59,7 +71,8 @@ pub fn day5(path: String) {
     let mut i = String::new();
     _ = buffer.read_to_string(&mut i);
 
-    let parsed_input = parse_full_conversion_map_file(&i).unwrap();
+    let (_, (seed_list, category_maps)) = parse_full_conversion_map_file(&i).unwrap();
+
 }
 
 fn parse_seeds(i: &str) -> IResult<&str, Vec<u64>> {
@@ -159,6 +172,12 @@ soil-to-fertilizer map:
                                conversion_ranges: vec![(0, 15,37), (37, 52, 2), (39, 0, 15)]
                            }
                        ]))));
+    }
+
+    #[test]
+    fn should_output_valid_destination_value() {
+        assert_eq!(Some(50), CategoryMap::output_for_range(98, (50, 98, 2)));
+        assert_eq!(Some(10), CategoryMap::output_for_range(21, (0, 11, 42)));
     }
 
 }
