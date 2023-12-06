@@ -52,16 +52,21 @@ impl CategoryMap {
         }
     }
 
-    pub fn output_for_range(source: u64, range: (u64, u64, u64)) -> Option<u64> {
+    pub fn output_for_range(&self, source: u64, range: (u64, u64, u64)) -> Option<u64> {
         if source >= range.1 && source < (range.1+range.2) {
-        // if (range.1..(range.1+range.2)).contains(&source) {
             return Some(range.0 + source - range.1)
         }
         None
     }
 
     pub fn convert(&self, source: u64) -> u64 {
-        todo!()
+        for map_ranges in self.conversion_ranges.iter() {
+            match self.output_for_range(source, *map_ranges) {
+                None => {}
+                Some(n) => { return n }
+            }
+        }
+        source
     }
 }
 
@@ -72,7 +77,17 @@ pub fn day5(path: String) {
     _ = buffer.read_to_string(&mut i);
 
     let (_, (seed_list, category_maps)) = parse_full_conversion_map_file(&i).unwrap();
+    let mut locations = vec![];
+    for seed in seed_list {
+        let mut result = seed;
+        for map in category_maps.iter() {
+            result = map.convert(result);
+        }
+        locations.push(result);
+    }
 
+    locations.sort_by(|a, b| a.cmp(b));
+    println!("Lowest location: {}", locations[0]);
 }
 
 fn parse_seeds(i: &str) -> IResult<&str, Vec<u64>> {
@@ -175,9 +190,20 @@ soil-to-fertilizer map:
     }
 
     #[test]
-    fn should_output_valid_destination_value() {
-        assert_eq!(Some(50), CategoryMap::output_for_range(98, (50, 98, 2)));
-        assert_eq!(Some(10), CategoryMap::output_for_range(21, (0, 11, 42)));
+    fn should_convert_to_destination() {
+        let map = CategoryMap {
+            source: Category::Seed,
+            destination: Category::Soil,
+            conversion_ranges: vec![
+                (50, 98, 2),
+                (52, 50, 48)
+            ]
+        };
+
+        assert_eq!(map.convert(98), 50);
+        assert_eq!(map.convert(55), 57);
+        assert_eq!(map.convert(101), 101);
+        assert_eq!(map.convert(10), 10);
     }
 
 }
