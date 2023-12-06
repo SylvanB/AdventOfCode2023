@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.10", features = ["derive"] }
 aho-corasick = "1.1.2"
+nom = "7.1.3"

@@ -2,6 +2,7 @@ mod day1;
 mod day2;
 mod day3;
 mod day4;
+mod day5;
 
 use clap::Parser;
 
@@ -24,6 +25,7 @@ fn main() {
         2 => day2::day2(args.input_path),
         3 => day3::day3(args.input_path),
         4 => day4::day4(args.input_path),
-        _ => {}
+        5 => day5::day5(args.input_path),
+        n => { println!("Implementation for provided day (day {n}) not found. ")}
     };
 }
