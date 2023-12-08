@@ -4,7 +4,7 @@ use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufReader, Read};
 use std::str::FromStr;
-use itertools::Itertools;
+use itertools::{Itertools};
 use nom::bytes::complete::{is_a, tag};
 use nom::character::complete::{space1, u32};
 use nom::IResult;
@@ -57,7 +57,7 @@ enum Card {
     #[strum(serialize = "T")]
     Ten     = 512,
     #[strum(serialize = "J")]
-    Jack    = 1024,
+    Jack    = 1,
     #[strum(serialize = "Q")]
     Queen   = 2048,
     #[strum(serialize = "K")]
@@ -114,15 +114,15 @@ impl PartialOrd for Hand<'_> {
     }
 }
 
-impl<'Hand> Hand<'Hand> {
-    pub fn new(cards: &'Hand str, bid: u32) -> Hand<'Hand> {
+impl<'hand> Hand<'hand> {
+    pub fn new(cards: &'hand str, bid: u32) -> Hand<'hand> {
         let parsed_cards: Vec<Card> = cards
             .split("")
             .filter(|x| !x.is_empty())
             .map(|c| Card::from_str(c).unwrap())
             .collect();
 
-        let cards_freq = parsed_cards.clone().into_iter()
+        let mut cards_freq = parsed_cards.clone().into_iter()
             .fold(BTreeMap::new(), |mut acc, c| {
                 *acc.entry(c).or_insert(0) += 1;
                 acc
@@ -136,7 +136,7 @@ impl<'Hand> Hand<'Hand> {
             hand_type: HandType::HighCard
         };
 
-        hand.hand_type = get_type(&cards_freq);
+        hand.hand_type = get_type(cards_freq);
 
         hand
     }
@@ -153,9 +153,24 @@ impl<'Hand> Hand<'Hand> {
     }
 }
 
-fn get_type(cards: &BTreeMap<Card, u32>) -> HandType {
-    let sorted: Vec<(&Card, &u32)> = cards.iter()
-        .sorted_by(|a, b| a.1.cmp(b.1)).rev()
+fn get_type(mut cards: BTreeMap<Card, u32>) -> HandType {
+    if cards.keys().collect::<Vec<&Card>>() != vec![&Card::Jack] {
+        if let Some((_, mut wildcards)) = cards.remove_entry(&Card::Jack) {
+            for (k, v) in cards.clone().iter().sorted_by(|a, b| a.1.cmp(&b.1)).rev() {
+                if wildcards <= 0 {
+                    break;
+                }
+
+                let wildcards_left = ((v + wildcards) as u32).saturating_sub(5);
+                let used = wildcards - wildcards_left;
+                *cards.get_mut(&k).unwrap() += used;
+                wildcards = wildcards_left;
+            }
+        }
+    }
+
+    let sorted: Vec<(Card, u32)> = cards.clone().into_iter()
+        .sorted_by(|a, b| a.1.cmp(&b.1)).rev()
         .collect();
 
     match sorted[0] {
@@ -314,7 +329,8 @@ J3425 9
 J5432 8
 JJJJJ 1
 "#;
-        assert_eq!(get_total_winnings(hands), 2237);
+        // assert_eq!(get_total_winnings(hands), 2237);
+        assert_eq!(get_total_winnings(hands), 2297);
     }
 
 }
