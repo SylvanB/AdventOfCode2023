@@ -18,13 +18,6 @@ pub fn day7(path: String) {
     let mut i = String::new();
     _ = buffer.read_to_string(&mut i);
 
-    // let (i, mut hands) = parse_hands(&i).unwrap();
-    // hands.sort();
-    // let mut total_winnings = 0;
-    // for (idx, h) in hands.iter().enumerate() {
-    //     let a = idx + 1;
-    //     total_winnings += h.bid * a as u32;
-    // }
     let total_winnings = get_total_winnings(&i);
 
     println!("{}", total_winnings);
@@ -43,8 +36,7 @@ fn get_total_winnings(i: &str) -> u32 {
     total_winnings
 }
 
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, EnumString)]
-#[repr(u32)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, EnumString)]
 enum Card {
     #[strum(serialize = "2")]
     Two     = 2,
@@ -74,7 +66,7 @@ enum Card {
     Ace     = 8192
 }
 
-#[derive(Display, Debug, Eq,PartialEq, Ord, PartialOrd, Hash, EnumString)]
+#[derive(Display, Debug, Eq,PartialEq, Ord, PartialOrd, EnumString)]
 enum HandType {
     FiveOfAKind = 7,
     FourOfAKind = 6,
@@ -85,9 +77,10 @@ enum HandType {
     HighCard = 1
 }
 
-#[derive(Debug, Eq)]
+#[derive(Debug, Eq, Ord)]
 struct Hand<'a> {
     raw_hand: &'a str,
+    cards: Vec<Card>,
     card_value: u32,
     bid: u32,
     hand_type: HandType,
@@ -100,32 +93,24 @@ impl PartialEq for Hand<'_> {
 
 }
 
-// impl Hash for Hand {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         self.hand_type.hash(state);
-//         self.card_value.hash(state);
-//     }
-// }
-
 impl PartialOrd for Hand<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let result = if &self.hand_type.cmp(&other.hand_type) == &Ordering::Equal {
-            self.card_value.cmp(&other.card_value)
+            let mut res = Ordering::Equal;
+            for (c1, c2) in self.cards.iter().zip(&other.cards) {
+                if c1.cmp(c2) == Ordering::Equal {
+                    continue;
+                } else {
+                    res = c1.cmp(&c2);
+                    break;
+                }
+            }
+            Some(res)
         } else {
-            self.hand_type.cmp(&other.hand_type)
+            Some(self.hand_type.cmp(&other.hand_type))
         };
 
-        Some(result)
-    }
-}
-
-impl Ord for Hand<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if &self.hand_type.cmp(&other.hand_type) == &Ordering::Equal {
-            self.card_value.cmp(&other.card_value)
-        } else {
-            self.hand_type.cmp(&other.hand_type)
-        }
+        result
     }
 }
 
@@ -143,10 +128,10 @@ impl<'Hand> Hand<'Hand> {
                 acc
             });
 
-        let keys = cards_freq.keys().collect::<Vec<&Card>>();
         let mut hand = Self {
             raw_hand: cards,
-            card_value: Self::calculate_value(parsed_cards),
+            cards: parsed_cards.clone(),
+            card_value: Self::calculate_value(parsed_cards.clone()),
             bid,
             hand_type: HandType::HighCard
         };
@@ -157,9 +142,6 @@ impl<'Hand> Hand<'Hand> {
     }
 
     fn calculate_value(cards: Vec<Card>) -> u32 {
-    //     |acc, (idx, (c, count))| {
-    //         acc + (5 - idx as u32) * (*c) as u32 * count
-    //     }
         let mut score = 0;
 
         for (idx, card) in cards.into_iter().enumerate() {
@@ -172,11 +154,8 @@ impl<'Hand> Hand<'Hand> {
 }
 
 fn get_type(cards: &BTreeMap<Card, u32>) -> HandType {
-    // Sorts the cards incorrectly by Card not count
     let sorted: Vec<(&Card, &u32)> = cards.iter()
-        // TODO: Why does this break everything??
-        // .sorted_by(|a, b| b.1.cmp(a.1))
-
+        .sorted_by(|a, b| a.1.cmp(b.1)).rev()
         .collect();
 
     match sorted[0] {
