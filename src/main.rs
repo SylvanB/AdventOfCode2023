@@ -1,7 +1,8 @@
 mod solutions;
+mod utilities;
 
 use clap::Parser;
-use crate::solutions::{day1, day2, day3, day4, day5, day6, day7};
+use crate::solutions::{day1, day2, day3, day4, day5, day6, day7, day8};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -25,6 +26,7 @@ fn main() {
         5 => day5::day5(args.input_path),
         6 => day6::day6(args.input_path),
         7 => day7::day7(args.input_path),
+        8 => day8::day8(args.input_path),
         n => { println!("Implementation for provided day (day {n}) not found. ")}
     };
 }
