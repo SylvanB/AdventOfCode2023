@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
+use itertools::Itertools;
 use nom::bytes::complete::{is_a, take, take_while};
 use nom::character::complete::{alpha1, newline};
 use nom::bytes::complete::tag;
@@ -14,7 +15,64 @@ pub fn day8(path: String) {
     let i = load_input(path);
     let steps_to_way_out = calculate_steps_to_way_out(&i);
 
-    println!("{}", steps_to_way_out);
+    println!("Part 1: {}", steps_to_way_out);
+
+    // Part 2
+    let steps = calculate_steps_to_way_out_pt2(&i);
+    println!("Part 2: {}", steps);
+}
+
+fn calculate_steps_to_way_out_pt2(i: &str) -> usize {
+    let (i, (directions, nodes)) = parse_map_file(i).unwrap();
+
+    let node_tree = nodes.iter().fold(MapNodeTree::new(), |mut tree, node| {
+        _ = tree.insert_node(node);
+        tree
+    });
+
+    let mut ids: Vec<MapNodeId> = node_tree.nodes.keys().filter(|x| x.ends_with("A")).map(|x| x.to_owned()).collect();
+    let mut i = 0;
+    let mut loop_sizes = HashMap::new();
+    // while !ids.clone().iter().all(|x| x.ends_with("Z")) {
+    while ids.len() > 0 {
+        let curr_direction = &directions[i % directions.len()];
+
+        for (idx, id) in ids.clone().into_iter().enumerate() {
+            if id.ends_with("Z") {
+                loop_sizes.insert(id, i);
+                ids.remove(idx);
+                break;
+            }
+
+            let node = node_tree.get_node(&id);
+            ids[idx] = match curr_direction {
+                Direction::L => node.left.unwrap(),
+                Direction::R => node.right.unwrap(),
+            };
+        }
+        i += 1;
+        // dbg!(i);
+        // dbg!(&ids);
+        dbg!(&loop_sizes);
+
+
+    }
+    let lcm = lowest_common_muliple(loop_sizes.values().collect(), 0);
+    dbg!(lcm);
+    i
+}
+
+fn lowest_common_muliple(input: Vec<&usize>, idx: usize) -> usize {
+
+}
+
+fn gcd(a: usize, b: usize) -> usize {
+    // Find Minimum of a and b
+    if b == 0 {
+        return a;
+    }
+
+    gcd(b, a % b)
 }
 
 fn calculate_steps_to_way_out(i: &str) -> usize {
@@ -36,8 +94,6 @@ fn calculate_steps_to_way_out(i: &str) -> usize {
         };
         i += 1;
     }
-
-    println!("Steps to find ZZZ: {}", i);
 
     i
 }
@@ -63,15 +119,18 @@ impl<'arena> MapNodeTree<'arena> {
         }
     }
 
-    pub fn get_node(&self, node_idx: &MapNodeId) -> &MapNode {
-        &self.nodes[*node_idx]
-    }
-
-    pub fn update_node(&mut self, node_idx: &'arena MapNodeId, updated: &'arena MapNode) {
-        if let Some(node) = self.nodes.get_mut(node_idx) {
-            *node = updated.clone();
+    pub fn get_node(&'arena self, node_idx: MapNodeId) -> &'arena MapNode {
+        match &self.nodes.get(node_idx) {
+            None => panic!("Couldnt find {}", node_idx),
+            Some(n) => *n
         }
     }
+
+    // pub fn update_node(&mut self, node_idx: &'arena MapNodeId, updated: &'arena MapNode) {
+    //     if let Some(node) = self.nodes.get_mut(node_idx) {
+    //         *node = updated.clone();
+    //     }
+    // }
 
     pub fn insert_node(&mut self, node: &'arena MapNode) -> MapNodeId {
         self.nodes.insert(&node.node_id, node.clone());
@@ -127,7 +186,11 @@ fn parse_map_nodes(i: &str) -> IResult<&str, Vec<MapNode>> {
 fn parse_map_file(i: &str) -> IResult<&str, (Vec<Direction>, Vec<MapNode>)> {
     let (i, directions) = parse_directions(i)?;
     let (i, (_)) = newline(i)?;
-    let (i, nodes) = parse_map_nodes(i)?;
+    let (i, mut nodes) = parse_map_nodes(i)?;
+
+    // // TODO: Whats going on here?
+    // let (_, (last_node)) = parse_map_node(i)?;
+    // nodes.push(last_node);
 
     Ok((i, (directions, nodes)))
 }
